@@ -1,0 +1,12 @@
+# Real credentials: never commit
+private/config.php
+
+# Uploaded user files
+uploads/*
+!uploads/.gitkeep
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+*.log
