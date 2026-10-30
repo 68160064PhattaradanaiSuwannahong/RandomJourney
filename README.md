@@ -35,6 +35,7 @@
 - [🛠️ Tech Stack](#️-tech-stack)
 - [🧠 Design Decisions](#-design-decisions)
 - [🔮 Future Work](#-future-work)
+- [👥 Team](#-team)
 - [📖 Credits & Data Sources](#-credits--data-sources)
 
 ---
@@ -45,7 +46,7 @@
 
 | Country | Cities | Why it's in the dataset |
 |---|---|---|
-| 🇹🇭 Thailand | Bangkok, Chiang Mai, Krabi | Temples, mountains *and* islands; home country of the author |
+| 🇹🇭 Thailand | Bangkok, Chiang Mai, Krabi | Temples, mountains *and* islands; the team's home country |
 | 🇯🇵 Japan | Tokyo, Kyoto | Lowest risk, high cost, shrines and modern cities |
 | 🇮🇹 Italy | Rome, Florence | Ancient Rome and Renaissance art; pickpocket hotspot |
 | 🇪🇬 Egypt | Cairo, Luxor | Pharaonic sites in the desert; cheapest destination |
@@ -336,6 +337,42 @@ Fewer third-party requests, a tighter Content Security Policy, and pages that st
 
 ---
 
+## 👥 Team
+
+<div align="center">
+
+<table>
+  <tr>
+    <td align="center" width="240">
+      <a href="https://github.com/68160064PhattaradanaiSuwannahong">
+        <img src="https://github.com/68160064PhattaradanaiSuwannahong.png?size=120" width="100" height="100" alt="68160064PhattaradanaiSuwannahong"><br>
+        <b>Phattaradanai Suwannahong</b>
+      </a><br>
+      <sub>68160064 · Owner</sub>
+    </td>
+    <td align="center" width="240">
+      <a href="https://github.com/68160186Chayangkun">
+        <img src="https://github.com/68160186Chayangkun.png?size=120" width="100" height="100" alt="68160186Chayangkun"><br>
+        <b>Chayangkun Peanhasilp</b>
+      </a><br>
+      <sub>68160186 · Contributor</sub>
+    </td>
+    <td align="center" width="240">
+      <a href="https://github.com/68160201Phornchai">
+        <img src="https://github.com/68160201Phornchai.png?size=120" width="100" height="100" alt="68160201Phornchai"><br>
+        <b>Phornchai Phueakladprow</b>
+      </a><br>
+      <sub>68160201 · Contributor</sub>
+    </td>
+  </tr>
+</table>
+
+[![Contributors](https://img.shields.io/github/contributors/68160064PhattaradanaiSuwannahong/RandomJourney?style=for-the-badge&color=24479e)](https://github.com/68160064PhattaradanaiSuwannahong/RandomJourney/graphs/contributors)
+
+</div>
+
+---
+
 ## 📖 Credits & Data Sources
 
 1. Travel advisory levels — [U.S. Department of State Travel Advisories](https://travel.state.gov/traveladvisories)
@@ -352,7 +389,7 @@ Fewer third-party requests, a tighter Content Security Policy, and pages that st
 
 <div align="center">
 
-Made with ❤️ and a lot of passport stamps by [**Phattaradanai Suwannahong**](https://github.com/68160064PhattaradanaiSuwannahong)
+Made with 🧭 and a lot of passport stamps by [**Phattaradanai**](https://github.com/68160064PhattaradanaiSuwannahong), [**Chayangkun**](https://github.com/68160186Chayangkun) and [**Phornchai**](https://github.com/68160201Phornchai)
 
 *Burapha University · PHP & MySQL · Recommend & Random Travel*
 
