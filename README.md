@@ -348,21 +348,21 @@ Fewer third-party requests, a tighter Content Security Policy, and pages that st
         <img src="https://github.com/68160064PhattaradanaiSuwannahong.png?size=120" width="100" height="100" alt="68160064PhattaradanaiSuwannahong"><br>
         <b>Phattaradanai Suwannahong</b>
       </a><br>
-      <sub>68160064 · Owner</sub>
+      <sub>🍔 · 68160064 · Owner</sub>
     </td>
     <td align="center" width="240">
       <a href="https://github.com/68160186Chayangkun">
         <img src="https://github.com/68160186Chayangkun.png?size=120" width="100" height="100" alt="68160186Chayangkun"><br>
         <b>Chayangkun Peanhasilp</b>
       </a><br>
-      <sub>68160186 · Contributor</sub>
+      <sub> · 68160186 · Contributor</sub>
     </td>
     <td align="center" width="240">
       <a href="https://github.com/68160201Phornchai">
         <img src="https://github.com/68160201Phornchai.png?size=120" width="100" height="100" alt="68160201Phornchai"><br>
         <b>Phornchai Phueakladprow</b>
       </a><br>
-      <sub>68160201 · Contributor</sub>
+      <sub> · 68160201 · Contributor</sub>
     </td>
   </tr>
 </table>
