@@ -355,7 +355,7 @@ Fewer third-party requests, a tighter Content Security Policy, and pages that st
         <img src="https://github.com/68160186Chayangkun.png?size=120" width="100" height="100" alt="68160186Chayangkun"><br>
         <b>Chayangkun Peanhasilp</b>
       </a><br>
-      <sub> · 68160186 · Contributor</sub>
+      <sub>🤒 · 68160186 · Contributor</sub>
     </td>
     <td align="center" width="240">
       <a href="https://github.com/68160201Phornchai">
