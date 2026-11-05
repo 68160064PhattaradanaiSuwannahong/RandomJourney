@@ -106,3 +106,28 @@ UPDATE rj_users SET role = 'admin' WHERE username = 'your_username';
 | Open redirect | `?next=` รับเฉพาะ path ภายในเว็บ |
 | บัญชีถูกระงับ | ตรวจ `is_active` ทุก request ถ้าถูกระงับจะ logout ทันที |
 | Logout | ต้องเป็น POST + CSRF (ลิงก์จากเว็บอื่นสั่ง logout ไม่ได้) |
+
+## อัปเดตเป็นเวอร์ชัน พ.ย. 2026 (20 ประเทศ, รูปภาพ, สำรับไพ่, แผนทริป)
+
+ห้ามรัน `schema.sql` ซ้ำ เพราะจะลบข้อมูลผู้ใช้และรีวิวทิ้งทั้งหมด ให้ import 3 ไฟล์นี้ตามลำดับใน phpMyAdmin (ฐานข้อมูล `s68160064` → **Import**):
+
+1. `database/migrate_2026_11.sql` — เพิ่มตาราง `rj_photos`, `rj_trips`, `rj_trip_items` และคอลัมน์ใหม่ของสถานที่ (รันซ้ำได้)
+2. `database/seed_destinations.sql` — 20 ประเทศ 287 สถานที่ พร้อมเวลาที่ควรไปและเคล็ดลับ (รันซ้ำได้ ไม่ทำให้ข้อมูลซ้ำ)
+3. `database/seed_photos.sql` — ลิงก์รูป 1,213 รูปจาก Wikimedia Commons พร้อมเครดิตผู้ถ่าย (รันซ้ำได้)
+
+จากนั้นอัปโหลดทั้งโฟลเดอร์ขึ้น `public_html/RandomJourney/` ทับของเดิม **ยกเว้น** `private/config.php`
+ไม่จำเป็นต้องอัปโหลด `database/`, `tools/`, `docs/`
+
+ไฟล์ใหม่ที่ต้องขึ้นไปด้วย:
+- `deck.php`, `trips.php`, `trip.php`, `404.php`
+- `includes/geo.php`, `includes/tarot.php`, `includes/trips.php`, `includes/not_found.php`, `includes/data/`
+- `assets/js/dice.js`, `assets/js/theme.js`, `assets/css/fonts.css`, `assets/fonts/`, `assets/vendor/three/`, `assets/img/card-back.svg`
+
+### ตรวจหลังอัปโหลด
+
+- หน้า Spin: ลูกเต๋าหมุนแล้วไพ่พลิกขึ้นมา ติ๊ก "Roll with advantage" แล้วจะได้ลูกเต๋า 2 ลูกให้เลือกไพ่ 1 ใบ
+  (ถ้าเบราว์เซอร์ไม่มี WebGL หรือเปิด "ลดการเคลื่อนไหว" จะเห็นไพ่ทันที เป็นพฤติกรรมที่ตั้งใจไว้)
+- หน้าสถานที่มีแกลเลอรีรูป และมีเครดิตผู้ถ่ายใต้รูป
+- หน้า Deck แสดงไพ่ 20 ใบ ใบที่ยังไม่เคยทอยได้จะคว่ำอยู่
+- ล็อกอินแล้วไปที่ Trips สร้างทริป แล้วเพิ่มสถานที่ที่กด ♡ Save ไว้
+- ปุ่มพระจันทร์บนแถบเมนูสลับโหมดกลางคืน ปุ่มลำโพงเปิดเสียง (ค่าเริ่มต้นปิด)

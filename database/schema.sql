@@ -10,7 +10,8 @@ SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
 
 DROP VIEW  IF EXISTS rj_v_country_risk;
-DROP TABLE IF EXISTS rj_api_cache, rj_random_history, rj_favorites,
+DROP TABLE IF EXISTS rj_trip_items, rj_trips, rj_photos,
+                     rj_api_cache, rj_random_history, rj_favorites,
                      rj_article_places, rj_articles,
                      rj_review_reports, rj_review_helpful, rj_review_images, rj_reviews,
                      rj_login_attempts, rj_users,
@@ -173,7 +174,10 @@ CREATE TABLE rj_places (
     permit_info     TEXT         NULL,
     opening_hours   VARCHAR(200) NULL,
     dress_code      VARCHAR(200) NULL,
+    best_time       VARCHAR(300) NULL,                   -- e.g. "Early morning, before the tour groups"
+    tips            TEXT         NULL,
     website_url     VARCHAR(500) NULL,
+    wiki_url        VARCHAR(500) NULL,
     image_url       VARCHAR(500) NULL,
 
     -- rating cache (updated whenever a review changes)
@@ -412,6 +416,53 @@ CREATE TABLE rj_favorites (
     PRIMARY KEY (user_id, place_id),
     CONSTRAINT fk_fav_user  FOREIGN KEY (user_id)  REFERENCES rj_users(id)  ON DELETE CASCADE,
     CONSTRAINT fk_fav_place FOREIGN KEY (place_id) REFERENCES rj_places(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- Photos of places (from Wikimedia Commons, with credits). City and country covers use their places' photos.
+CREATE TABLE rj_photos (
+    id          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    place_id    INT UNSIGNED NOT NULL,
+    url         VARCHAR(1000) NOT NULL,            -- large image (about 1280 px wide)
+    thumb_url   VARCHAR(1000) NOT NULL,            -- small image (about 500 px wide)
+    width       SMALLINT UNSIGNED NULL,
+    height      SMALLINT UNSIGNED NULL,
+    caption     VARCHAR(300) NULL,
+    author      VARCHAR(300) NULL,
+    license     VARCHAR(100) NULL,
+    license_url VARCHAR(300) NULL,
+    source_url  VARCHAR(1000) NULL,                -- file page on Wikimedia Commons
+    sort_order  TINYINT UNSIGNED NOT NULL DEFAULT 0,
+    created_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_photo_place FOREIGN KEY (place_id) REFERENCES rj_places(id) ON DELETE CASCADE,
+    UNIQUE KEY uq_photo (place_id, url(255)),
+    INDEX idx_photo_place (place_id, sort_order)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- Trip planner: a user's trips, each a list of saved places arranged by day
+CREATE TABLE rj_trips (
+    id          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id     INT UNSIGNED NOT NULL,
+    title       VARCHAR(120) NOT NULL,
+    start_date  DATE         NULL,
+    days        TINYINT UNSIGNED NOT NULL DEFAULT 3,
+    created_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_trip_user FOREIGN KEY (user_id) REFERENCES rj_users(id) ON DELETE CASCADE,
+    CONSTRAINT chk_trip_days CHECK (days BETWEEN 1 AND 30),
+    INDEX idx_trip_user (user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE rj_trip_items (
+    id          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    trip_id     INT UNSIGNED NOT NULL,
+    place_id    INT UNSIGNED NOT NULL,
+    day_no      TINYINT UNSIGNED NOT NULL DEFAULT 1,
+    sort_order  SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+    note        VARCHAR(300) NULL,
+    CONSTRAINT fk_ti_trip  FOREIGN KEY (trip_id)  REFERENCES rj_trips(id)  ON DELETE CASCADE,
+    CONSTRAINT fk_ti_place FOREIGN KEY (place_id) REFERENCES rj_places(id) ON DELETE CASCADE,
+    UNIQUE KEY uq_trip_place (trip_id, place_id),
+    INDEX idx_ti_trip (trip_id, day_no, sort_order)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- Remembers past random results (avoid repeats, show "your spins")

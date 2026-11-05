@@ -117,13 +117,13 @@ function visa_for_current_user(array $country): array
 }
 
 /** Render a Leaflet map from a list of points. */
-function map_block(string $id, array $points, string $label, int $zoom = 14): string
+function map_block(string $id, array $points, string $label, int $zoom = 14, bool $route = false): string
 {
     $json = json_encode(array_values($points), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE);
     return sprintf(
-        '<div class="map" data-map="%1$s" data-zoom="%2$d" role="region" aria-label="%3$s"></div>'
+        '<div class="map" data-map="%1$s" data-zoom="%2$d"%5$s role="region" aria-label="%3$s"></div>'
         . '<script type="application/json" id="%1$s">%4$s</script>',
-        e($id), $zoom, e($label), $json
+        e($id), $zoom, e($label), $json, $route ? ' data-route' : ''
     );
 }
 
@@ -150,4 +150,85 @@ function paragraphs(?string $text): string
     }
     $parts = preg_split('/\R{2,}/', trim($text));
     return implode('', array_map(fn ($p) => '<p>' . nl2br(e(trim($p))) . '</p>', $parts));
+}
+
+// ---------------------------------------------------------------------
+// Photos (Wikimedia Commons, stored as links with credits)
+// ---------------------------------------------------------------------
+
+/** All photos of a place, in display order. */
+function place_photos(int $placeId): array
+{
+    $stmt = db()->prepare('SELECT * FROM rj_photos WHERE place_id = ? ORDER BY sort_order, id');
+    $stmt->execute([$placeId]);
+    return $stmt->fetchAll();
+}
+
+/** The first photo of each of the given places: place_id => photo row. */
+function first_photos(array $placeIds): array
+{
+    $ids = array_values(array_unique(array_map('intval', $placeIds)));
+    if (!$ids) {
+        return [];
+    }
+    $in = implode(',', array_fill(0, count($ids), '?'));
+    $stmt = db()->prepare(
+        "SELECT ph.* FROM rj_photos ph
+         JOIN (SELECT place_id, MIN(sort_order) AS so FROM rj_photos WHERE place_id IN ($in) GROUP BY place_id) f
+           ON f.place_id = ph.place_id AND f.so = ph.sort_order"
+    );
+    $stmt->execute($ids);
+    $out = [];
+    foreach ($stmt as $row) {
+        $out[(int) $row['place_id']] ??= $row;
+    }
+    return $out;
+}
+
+/**
+ * Cover photo for a city or a country: the first photo of its best-known sight
+ * (attractions first, then the most reviewed).
+ */
+function cover_photo(string $scope, int $id): ?array
+{
+    $where = $scope === 'country' ? 'ci.country_id = ?' : 'p.city_id = ?';
+    $stmt = db()->prepare(
+        "SELECT ph.* FROM rj_photos ph
+         JOIN rj_places p ON p.id = ph.place_id
+         JOIN rj_cities ci ON ci.id = p.city_id
+         JOIN rj_categories cat ON cat.id = p.category_id
+         WHERE $where AND p.status = 'published' AND ph.sort_order = 0
+         ORDER BY cat.slug = 'attraction' DESC, p.is_historical DESC, p.review_count DESC, p.id
+         LIMIT 1"
+    );
+    $stmt->execute([$id]);
+    return $stmt->fetch() ?: null;
+}
+
+/** "Photo: Jane Doe, CC BY-SA 4.0, Wikimedia Commons" with links. */
+function photo_credit(array $ph): string
+{
+    $parts = [];
+    $author = trim((string) ($ph['author'] ?? ''));
+    $parts[] = 'Photo: ' . e($author !== '' ? mb_strimwidth($author, 0, 80, '…') : 'Unknown author');
+    if (!empty($ph['license'])) {
+        $parts[] = !empty($ph['license_url'])
+            ? '<a href="' . e($ph['license_url']) . '" rel="license noopener" target="_blank">' . e($ph['license']) . '</a>'
+            : e($ph['license']);
+    }
+    if (!empty($ph['source_url'])) {
+        $parts[] = '<a href="' . e($ph['source_url']) . '" rel="noopener" target="_blank">Wikimedia Commons</a>';
+    }
+    return implode(', ', $parts);
+}
+
+/** <img> for a photo; $size is 'thumb' or 'large'. */
+function photo_img(array $ph, string $size, string $alt, string $class = '', bool $lazy = true): string
+{
+    $src = $size === 'large' ? $ph['url'] : $ph['thumb_url'];
+    $w = (int) ($ph['width'] ?? 0);
+    $h = (int) ($ph['height'] ?? 0);
+    $dims = $w && $h ? sprintf(' width="%d" height="%d"', $size === 'large' ? $w : 500, $size === 'large' ? $h : (int) round($h * 500 / $w)) : '';
+    return '<img src="' . e($src) . '" alt="' . e($alt) . '"' . ($class ? ' class="' . e($class) . '"' : '') . $dims
+         . ($lazy ? ' loading="lazy"' : '') . ' decoding="async" referrerpolicy="no-referrer">';
 }

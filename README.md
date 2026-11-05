@@ -11,11 +11,11 @@
 [![No Framework](https://img.shields.io/badge/Framework-None_(Vanilla_PHP)-555555?style=for-the-badge)](#-design-decisions)
 
 > *Tell it your budget, how much risk you can take and whether you want mountains, sea or old cities —*
-> *get ranked recommendations with reasons, or spin for somewhere you'd never have picked.*
+> *get ranked recommendations with reasons, or roll a twenty-sided die and draw your destination's tarot card.*
 
-| 🌍 Destinations | 🏙️ Cities | 📍 Places | 🗄️ Tables | 🛡️ Risk dimensions | 🧪 Pages crawled |
+| 🌍 Destinations | 🏙️ Cities | 📍 Places | 📷 Photos | 🗄️ Tables | 🧪 Pages crawled |
 |:---:|:---:|:---:|:---:|:---:|:---:|
-| 5 | 11 | **97** | 21 + 1 view | 6 per country | **616**, 0 errors |
+| **20** | 26 | **287** | **1,213** | 24 + 1 view | **900**, 0 errors |
 
 </div>
 
@@ -42,19 +42,25 @@
 
 ## ✨ Overview
 
-**Random Journey** is a travel website built as coursework at **Burapha University**, running on the faculty's **Angsila** server with its MySQL database. It covers five destinations chosen to spread across every filter — popular, historic and natural, cheap and expensive, low and higher risk:
+**Random Journey** is a travel website built as coursework at **Burapha University**, running on the faculty's **Angsila** server with its MySQL database. It covers twenty destinations — one for each face of the d20 — chosen to spread across every filter: popular, historic and natural, cheap and expensive, low and higher risk, visa-free and visa-required for Thai passports:
 
-| Country | Cities | Why it's in the dataset |
-|---|---|---|
-| 🇹🇭 Thailand | Bangkok, Chiang Mai, Krabi | Temples, mountains *and* islands; the team's home country |
-| 🇯🇵 Japan | Tokyo, Kyoto | Lowest risk, high cost, shrines and modern cities |
-| 🇮🇹 Italy | Rome, Florence | Ancient Rome and Renaissance art; pickpocket hotspot |
-| 🇪🇬 Egypt | Cairo, Luxor | Pharaonic sites in the desert; cheapest destination |
-| 🇵🇪 Peru | Cusco, Lima | Machu Picchu, high-altitude trails, Pacific coast |
+| Region | Countries (cities) |
+|---|---|
+| Southeast Asia | 🇹🇭 Thailand (Bangkok, Chiang Mai, Krabi) · 🇻🇳 Vietnam (Hanoi) · 🇰🇭 Cambodia (Siem Reap) · 🇸🇬 Singapore · 🇮🇩 Indonesia (Bali) |
+| East & South Asia | 🇯🇵 Japan (Tokyo, Kyoto) · 🇰🇷 South Korea (Seoul) · 🇨🇳 China (Beijing) · 🇮🇳 India (Agra) |
+| Europe | 🇮🇹 Italy (Rome, Florence) · 🇫🇷 France (Paris) · 🇬🇧 United Kingdom (London) · 🇬🇷 Greece (Athens) · 🇨🇭 Switzerland (Interlaken) · 🇮🇸 Iceland (Reykjavik) · 🇹🇷 Türkiye (Istanbul) |
+| Africa & Americas & Oceania | 🇪🇬 Egypt (Cairo, Luxor) · 🇵🇪 Peru (Cusco, Lima) · 🇺🇸 United States (New York) · 🇦🇺 Australia (Sydney) |
 
 ### What makes this project stand out
 
 - 🎯 **Two discovery modes with a real difference** — *Recommend* ranks places by a weighted match score and explains every result; *Random* treats filters as hard limits and adds chance, locks and a whole-day trip.
+- 🎲 **A real 3D d20** — each face is a destination's ISO code; the dice (three.js, self-hosted) lands on the server's pick and a tarot card turns over with the country's numeral, outline, flag and own-language name. *Roll with advantage* throws two dice and lets you keep one card.
+- 🃏 **A deck to collect** — every country you draw turns its card face up in your deck; country pages show the card, face down until you've drawn it. Any card can be saved as a PNG.
+- 📷 **1,213 photos** from Wikimedia Commons, up to five per place, each credited to its photographer with its licence.
+- 🗓️ **Trip planner** — arrange saved places by day, see them on a map joined in visiting order, and get an estimated budget in your own currency.
+- 🌙 **Night mode, page turns and sound** — a dark "candles out" theme, page-turn transitions and optional dice and card sounds.
+- 📍 **Near me, one tap** — share your location from the header pin, pick a radius (10 km – 5,000 km) and see distances on every result. It's rounded to ~1 km, sent only by POST and never saved.
+- 🗺️ **Pick several countries and cities** — or tick *Leave out the country I live in* (from your profile, your location, or a dropdown for guests).
 - 🛂 **Personalised by passport** — the visa panel, the "easy visa" filter and price conversion all use the nationality and currency in the user's profile.
 - 🛡️ **Risk split into 6 dimensions** — petty crime, violent crime, natural hazards, health, unrest and road safety, each with *how to handle it*, plus place-specific safety tips.
 - 🌦️ **Live data that degrades gracefully** — weather and exchange rates are cached in MySQL; if an API is down, pages fall back to stale data and never slow down.
@@ -75,7 +81,10 @@
 |---|---|
 | **Destinations** | Open a country to see visa rules, the 6-part risk meter, cost of living and emergency numbers |
 | **Recommend** | Pick *History* + *Ancient Site*, set risk to *Low*, mark Themes as *Must have* |
-| **Spin** | Choose *A whole day*, spin, then press *Keep this city, spin again* |
+| **Spin** | Choose *A whole day*, roll the dice, then press *Keep this city, roll again*. Try *Roll with advantage* |
+| **Deck** | See which of the 20 cards you've collected; open a country to see its card |
+| **Trips** | Save a few places, create a trip, add them to days and watch the budget |
+| **Near me** | Turn on the 📍 pin in the header, choose *Within 1,000 km* and press *Show recommendations* |
 | **A place page** | Map, distance from the city centre, nearby places, weather, reviews, ♡ Save |
 
 ---
@@ -87,12 +96,13 @@
 | 1 | Login with hashed passwords | `password_hash()` with **Argon2id**, automatic rehash, lockout after 5 failed logins |
 | 2 | Admin panel | Dashboard with content-gap checks and API status · CRUD for destinations, cities, places, safety tips, risks, visas · user roles & suspension · review moderation |
 | 3 | User profile with country & nationality | Residence, nationality and display currency drive visa info and price conversion |
-| 4 | Database | 21 tables + 1 view on MySQL 8.0, foreign keys, CHECK constraints, cached ratings |
+| 4 | Database | 24 tables + 1 view on MySQL 8.0, foreign keys, CHECK constraints, cached ratings |
 | 5 | Travel information | Places in 10 categories (attractions, trails, restaurants, cafés, sit-down bars, markets, malls, souvenirs, hotels) with history, culture & beliefs, prices, opening hours, dress code, permits, map, distance, weather, exchange rates, cost of living, risks & safety tips, visa rules |
 | 6 | Recommendation system | Weighted score from 7 criteria with user-chosen importance, plus a list of reasons per result |
-| 7 | Random system | Hard filters, single place or whole-day trip, lock country/city, avoids recent repeats, spin history |
+| 6–7 | Shared filters | Several countries and cities at once, *leave out my home country*, distance from the user's location with a chosen radius |
+| 7 | Random system | Hard filters, single place or whole-day trip, 3D d20 + tarot card reveal, roll with advantage, lock country/city, avoids recent repeats, spin history |
 | 8 | User reviews | 1–5 stars, edit/delete own review, *Helpful* votes, reports, admin hide/restore |
-| 9 | Extras | ♡ Saved places, weather-based packing tips, emergency numbers, "which filter is blocking you" hint |
+| 9 | Extras | Photo galleries, collectible deck, trip planner with budget, night mode, ♡ saved places, weather-based packing tips, emergency numbers, "which filter is blocking you" hint |
 
 ---
 
@@ -103,7 +113,7 @@
 | Goal | Find the **best fit** | Find something **unexpected** or break a tie |
 | Filters | Set a value **and** how much it matters | Every filter is a **hard limit** |
 | Output | Ranked list with **% match** and reasons | One place, or a full day: *See · Eat · Shop · Sleep* |
-| Extras | Map of the top 10 | Slot-machine reveal, lock country/city, no recent repeats |
+| Extras | Map of the top 10, distance from you | d20 roll and tarot card, lock country/city, no recent repeats |
 
 ### Match score
 
@@ -153,10 +163,10 @@ erDiagram
 
 | Group | Tables |
 |---|---|
-| Geography | `rj_countries` (all 249 countries, 5 flagged as destinations), `rj_cities` |
-| Places | `rj_places`, `rj_categories`, `rj_tags`, `rj_place_tags` |
+| Geography | `rj_countries` (all 249 countries, 20 flagged as destinations), `rj_cities` |
+| Places | `rj_places`, `rj_categories`, `rj_tags`, `rj_place_tags`, `rj_photos` |
 | Safety & entry | `rj_risk_scores`, `rj_place_safety`, `rj_visa_rules`, view `rj_v_country_risk` |
-| Users | `rj_users`, `rj_login_attempts` |
+| Users | `rj_users`, `rj_login_attempts`, `rj_trips`, `rj_trip_items` |
 | Community | `rj_reviews`, `rj_review_helpful`, `rj_review_reports`, `rj_favorites`, `rj_articles`, `rj_article_places` |
 | System | `rj_random_history`, `rj_api_cache`, `rj_transport_routes` |
 
@@ -173,6 +183,7 @@ erDiagram
 | XSS | Every output passes through `e()`; strict Content-Security-Policy with no inline scripts |
 | CSRF | Per-session token on every POST form, rotated after login; logout is POST-only |
 | Session hijacking | HttpOnly + SameSite cookie scoped to the app path, ID regenerated on login, 2 h idle timeout |
+| Location privacy | Rounded to 2 decimals (~1 km) in the browser, sent by POST (never in a URL or access log), removed before a spin is saved |
 | Open redirect | `?next=` accepted only for paths inside the site |
 | Suspended accounts | Checked on every request, session ended immediately |
 | Leaked config | `private/config.php` and every include file answer **403** when opened directly |
@@ -186,7 +197,9 @@ erDiagram
 | Exchange rates | [ExchangeRate-API (open access)](https://www.exchangerate-api.com/docs/free), fallback [Frankfurter](https://www.frankfurter.app/) | 12 hours |
 | Weather & 4-day forecast | [Open-Meteo](https://open-meteo.com/) | 1 hour per location |
 | Map tiles | [OpenStreetMap](https://www.openstreetmap.org/) via self-hosted Leaflet | browser |
+| Photos | [Wikimedia Commons](https://commons.wikimedia.org/) (links and credits stored in `rj_photos`) | browser |
 | Flags | [flagcdn.com](https://flagcdn.com/) | browser |
+| Country outlines & borders | [Natural Earth](https://www.naturalearthdata.com/) via [world-atlas](https://github.com/topojson/world-atlas), built once with `tools/build_shapes.mjs` | static JSON |
 | Distance | Haversine formula, computed in PHP | — |
 
 When an API fails, the last good response is reused and the API isn't called again for 10 minutes, so an outage never adds a timeout to every page view. The admin dashboard shows whether each source is reachable.
@@ -222,19 +235,31 @@ RandomJourney/
 │   ├── services.php       # Exchange rates, weather, distance, API cache
 │   ├── catalog.php        # Queries for country / city / place pages
 │   ├── reviews.php        # Reviews, ratings, reports, saved places
+│   ├── geo.php            # ISO alpha-3 codes, country outlines, point-in-country test
+│   ├── tarot.php          # Deck order, collected cards, tarot card HTML
+│   ├── trips.php          # Trip planner queries and budget
+│   ├── not_found.php      # "Lost in the archives" 404 page
+│   ├── data/              # shapes.json (tarot outlines), borders.json (home-country check)
 │   └── ...                # helpers, db, form, header, footer, panels
 ├── assets/
-│   ├── css/style.css
-│   ├── js/app.js          # Progressive enhancements (reveal animation, confirm, autosubmit)
+│   ├── css/style.css      # "Wanderer's Library" theme
+│   ├── css/fonts.css      # Cinzel, IM Fell English, Taviraj (self-hosted)
+│   ├── js/app.js          # Location toggle, pickers, dust motes, confirm, autosubmit
+│   ├── js/dice.js         # The 3D d20 (ES module, loaded only with WebGL)
+│   ├── js/theme.js        # Applies night mode before the page paints
 │   ├── js/map.js          # Leaflet maps built from JSON (no inline JS)
-│   └── vendor/leaflet/    # Leaflet 1.9.4, self-hosted
+│   ├── fonts/             # woff2 files + OFL licence
+│   ├── img/card-back.svg  # Back of the tarot cards: a gilt globe (Natural Earth land)
+│   └── vendor/            # Leaflet 1.9.4 and three.js r169, self-hosted
 ├── private/
 │   └── config.example.php # Copy to config.php (git-ignored)
 ├── database/
-│   ├── schema.sql              # 21 tables + 1 view (drops rj_* tables first!)
+│   ├── schema.sql              # 24 tables + 1 view (drops rj_* tables first!)
 │   ├── seed_countries.sql      # 249 countries with Thai names and currencies
-│   └── seed_destinations.sql   # 5 countries, 11 cities, 97 places, risks, visas
-├── tools/                 # Python generator for seed_destinations.sql
+│   ├── seed_destinations.sql   # 20 countries, 26 cities, 287 places, risks, visas, tips
+│   ├── seed_photos.sql         # 1,213 photo links with credits
+│   └── migrate_2026_11.sql     # Upgrade an existing database (adds photos and trips)
+├── tools/                 # seed data, SQL generators, outline builder, photo collector
 └── docs/DEPLOY.th.md      # Step-by-step deployment guide in Thai
 ```
 
@@ -255,7 +280,8 @@ cd RandomJourney
 cp private/config.example.php private/config.php   # then fill in the DB password
 ```
 
-1. In phpMyAdmin, import in this order: `schema.sql` → `seed_countries.sql` → `seed_destinations.sql`
+1. In phpMyAdmin, import in this order: `schema.sql` → `seed_countries.sql` → `seed_destinations.sql` → `seed_photos.sql`
+   (upgrading an existing install: `migrate_2026_11.sql` → `seed_destinations.sql` → `seed_photos.sql`; don't re-run `schema.sql`)
 2. Upload the folder to `public_html/RandomJourney/` (you can skip `database/`, `tools/`, `docs/`)
 3. Register an account on the site, then make it an admin:
    ```sql
@@ -271,6 +297,7 @@ mysql -u root -p -e "CREATE DATABASE randomjourney CHARACTER SET utf8mb4"
 mysql -u root -p randomjourney < database/schema.sql
 mysql -u root -p randomjourney < database/seed_countries.sql
 mysql -u root -p randomjourney < database/seed_destinations.sql
+mysql -u root -p randomjourney < database/seed_photos.sql
 cp private/config.example.php private/config.php
 # edit config.php: db name/user/pass, 'base_url' => '', 'debug' => true
 php -S localhost:8000
@@ -296,7 +323,8 @@ The SQL is idempotent: re-importing adds new places without duplicating existing
 | Database | MySQL 8.0 |
 | Frontend | Hand-written HTML/CSS, vanilla JavaScript (progressive enhancement — every page works without JS) |
 | Maps | Leaflet 1.9.4 + OpenStreetMap tiles |
-| Fonts | Archivo (display), IBM Plex Sans Thai (body, supports Thai names) |
+| 3D | three.js r169 (the d20), WebGL with a no-motion / no-WebGL fallback |
+| Fonts | Cinzel (display), IM Fell English (leads), Taviraj (body, Thai + Latin), all self-hosted |
 | Hosting | Apache on BUU Angsila (user-dir, `~68160064`) |
 | Testing | End-to-end checks with Python `requests` and Playwright against a local Apache set up like Angsila (test scripts not included) |
 
@@ -332,7 +360,7 @@ Fewer third-party requests, a tighter Content Security Policy, and pages that st
 - [ ] Trip articles: user-written guides linking several places (tables `rj_articles` already exist)
 - [ ] Photo uploads for reviews (the server lacks `gd`, so resizing would happen in the browser)
 - [ ] Thai / English interface switch
-- [ ] Trip planner with day-by-day routes and total budget
+- [x] Trip planner with day-by-day routes and total budget
 - [ ] Travel-time estimates from a routing API instead of straight-line distance
 
 ---
@@ -389,7 +417,7 @@ Fewer third-party requests, a tighter Content Security Policy, and pages that st
 
 <div align="center">
 
-Made with 🧭 and a lot of passport stamps by [**Phattaradanai**](https://github.com/68160064PhattaradanaiSuwannahong), [**Chayangkun**](https://github.com/68160186Chayangkun) and [**Phornchai**](https://github.com/68160201Phornchai)
+Made with ❤️ and a lot of passport stamps by [**Phattaradanai**](https://github.com/68160064PhattaradanaiSuwannahong), [**Chayangkun**](https://github.com/68160186Chayangkun) and [**Phornchai**](https://github.com/68160201Phornchai)
 
 *Burapha University · PHP & MySQL · Recommend & Random Travel*
 

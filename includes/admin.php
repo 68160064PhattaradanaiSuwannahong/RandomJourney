@@ -215,12 +215,42 @@ function admin_entities(): array
                 ['name' => 'dress_code', 'label' => 'Dress code', 'type' => 'text', 'max' => 200],
                 ['name' => 'permit_required', 'label' => 'Permit or advance booking required', 'type' => 'bool'],
                 ['name' => 'permit_info', 'label' => 'Permit details', 'type' => 'textarea', 'rows' => 3],
+                ['name' => 'best_time', 'label' => 'Best time to go', 'type' => 'text', 'max' => 300],
+                ['name' => 'tips', 'label' => 'Insider tips', 'type' => 'textarea', 'rows' => 3],
                 ['name' => 'website_url', 'label' => 'Official website', 'type' => 'url', 'half' => true],
-                ['name' => 'image_url', 'label' => 'Image URL', 'type' => 'url', 'half' => true],
+                ['name' => 'wiki_url', 'label' => 'Wikipedia article', 'type' => 'url', 'half' => true],
                 ['name' => 'status', 'label' => 'Status', 'type' => 'select', 'options' => 'status', 'required' => true, 'half' => true],
             ],
             'children' => [
                 ['entity' => 'safety', 'filter' => 'place_id', 'label' => 'Safety tips'],
+                ['entity' => 'photo', 'filter' => 'place_id', 'label' => 'Photos'],
+            ],
+        ],
+
+        'photo' => [
+            'title'    => 'Photos',
+            'singular' => 'photo',
+            'table'    => 'rj_photos',
+            'list' => [
+                'from'    => 'rj_photos ph JOIN rj_places p ON p.id = ph.place_id',
+                'select'  => 'ph.id, p.name_en AS place, ph.sort_order, ph.author, ph.license',
+                'order'   => 'p.name_en, ph.sort_order, ph.id',
+                'search'  => ['p.name_en', 'ph.author', 'ph.caption'],
+                'filters' => ['place_id' => ['ph.place_id', 'places', 'All places']],
+                'columns' => ['place' => 'Place', 'sort_order' => 'Order', 'author' => 'Photographer', 'license' => 'Licence'],
+            ],
+            'fields' => [
+                ['section' => 'Image', 'hint' => 'Use images you are allowed to share, such as Wikimedia Commons photos, and credit the photographer.'],
+                ['name' => 'place_id', 'label' => 'Place', 'type' => 'select', 'options' => 'places', 'required' => true, 'half' => true],
+                ['name' => 'sort_order', 'label' => 'Order (0 = cover photo)', 'type' => 'int', 'min' => 0, 'max' => 99, 'required' => true, 'half' => true],
+                ['name' => 'url', 'label' => 'Large image URL', 'type' => 'url', 'max' => 1000, 'required' => true],
+                ['name' => 'thumb_url', 'label' => 'Small image URL', 'type' => 'url', 'max' => 1000, 'required' => true, 'hint' => 'About 500 px wide. Can be the same as the large image.'],
+                ['name' => 'caption', 'label' => 'Caption', 'type' => 'text', 'max' => 300],
+                ['section' => 'Credit'],
+                ['name' => 'author', 'label' => 'Photographer', 'type' => 'text', 'max' => 300, 'half' => true],
+                ['name' => 'license', 'label' => 'Licence', 'type' => 'text', 'max' => 100, 'half' => true, 'hint' => 'For example CC BY-SA 4.0'],
+                ['name' => 'license_url', 'label' => 'Licence URL', 'type' => 'url', 'half' => true],
+                ['name' => 'source_url', 'label' => 'Source page', 'type' => 'url', 'max' => 1000, 'half' => true],
             ],
         ],
 
@@ -398,7 +428,7 @@ function admin_validate(array $entity, array $post): array
                 break;
 
             case 'url':
-                if (!filter_var($str, FILTER_VALIDATE_URL) || !preg_match('#^https?://#i', $str) || mb_strlen($str) > 500) {
+                if (!filter_var($str, FILTER_VALIDATE_URL) || !preg_match('#^https?://#i', $str) || mb_strlen($str) > ($f['max'] ?? 500)) {
                     $errors[$name] = 'Enter a full web address starting with https://';
                 }
                 $values[$name] = $str;

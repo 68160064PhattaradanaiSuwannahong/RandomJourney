@@ -7,6 +7,7 @@ if (!defined('RJ_BOOT')) { http_response_code(403); exit; }
 
 <footer class="site-footer">
     <div class="wrap">
+        <p class="site-footer__motto">“Not all those who wander are lost.”</p>
         <p>Random Journey is a travel recommendation project made at Burapha University.</p>
     </div>
 </footer>

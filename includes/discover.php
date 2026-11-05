@@ -46,6 +46,9 @@ function theme_options(): array
     return $tags;
 }
 
+/** Distance choices for the "near me" filter (km). */
+const RJ_RADII = [10 => 'Within 10 km', 50 => 'Within 50 km', 200 => 'Within 200 km', 1000 => 'Within 1,000 km', 5000 => 'Within 5,000 km'];
+
 /** Read and clean filters from a request array ($_GET or $_POST). */
 function read_filters(array $in): array
 {
@@ -56,11 +59,33 @@ function read_filters(array $in): array
     };
     $list = static fn (string $k, array $allowed): array =>
         array_values(array_intersect(array_filter((array) ($in[$k] ?? []), 'is_string'), $allowed));
+    $float = static function (string $k, float $limit) use ($in): ?float {
+        $v = filter_var($in[$k] ?? null, FILTER_VALIDATE_FLOAT);
+        // Rounded to 2 decimals (about 1 km): enough to measure distance, too coarse to pinpoint a home
+        return $v === false || abs($v) > $limit ? null : round($v, 2);
+    };
 
-    $country = strtoupper($str('country'));
+    // Countries and cities: several of each. The old single-value fields still work.
+    $destinations = destination_list();
+    $countries = array_map('strtoupper', array_filter(array_merge((array) ($in['countries'] ?? []), [$in['country'] ?? null]), 'is_string'));
+    $countries = array_values(array_unique(array_intersect($countries, array_keys($destinations))));
+    $cityIds = array_merge((array) ($in['cities'] ?? []), [$in['city_id'] ?? null]);
+    $cityIds = array_values(array_unique(array_filter(array_map(
+        fn ($v) => filter_var($v, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]),
+        $cityIds
+    ))));
+    $cityIds = array_values(array_intersect($cityIds, array_keys(destination_cities())));
+
+    $radius = $int('radius', 1, 20000);
     $f = [
-        'country'     => preg_match('/^[A-Z]{2}$/', $country) ? $country : '',
-        'city_id'     => $int('city_id', 1, PHP_INT_MAX),
+        'countries'   => $countries,
+        'cities'      => array_map('intval', $cityIds),
+        'not_home'    => ($in['not_home'] ?? '') === '1',
+        'home'        => null,      // ISO2 of the country to leave out, worked out below
+        'home_source' => null,      // 'profile', 'location' or 'chosen'
+        'lat'         => $float('lat', 90),
+        'lng'         => $float('lng', 180),
+        'radius'      => $radius !== null && array_key_exists($radius, RJ_RADII) ? $radius : null,
         'group'       => array_key_exists($str('group'), RJ_GROUPS) ? $str('group') : '',
         'max_price'   => $int('max_price', 0, 4),
         'max_risk'    => $int('max_risk', 1, 5),
@@ -70,22 +95,92 @@ function read_filters(array $in): array
         'cost'        => $int('cost', 1, 5),
         'imp'         => [],
     ];
+    if ($f['lat'] === null || $f['lng'] === null) {
+        $f['lat'] = $f['lng'] = null;
+    }
     foreach (array_keys(RJ_CRITERIA) as $c) {
         $f['imp'][$c] = $int("imp_{$c}", 0, 3) ?? ($c === 'visa' ? 0 : 1);
     }
 
-    // A city only counts if it belongs to the chosen country (the country may have just changed)
-    if ($f['city_id'] !== null) {
-        $stmt = db()->prepare('SELECT co.iso2 FROM rj_cities ci JOIN rj_countries co ON co.id = ci.country_id WHERE ci.id = ?');
-        $stmt->execute([$f['city_id']]);
-        $iso = $stmt->fetchColumn();
-        if ($iso === false || ($f['country'] !== '' && $iso !== $f['country'])) {
-            $f['city_id'] = null;
-        } elseif ($f['country'] === '') {
-            $f['country'] = $iso;
-        }
+    // The country you live in: from your profile, else where you are now, else what you picked
+    $user = current_user();
+    $chosen = strtoupper($str('home'));
+    if ($user && $user['residence_country_id']) {
+        $stmt = db()->prepare('SELECT iso2 FROM rj_countries WHERE id = ?');
+        $stmt->execute([$user['residence_country_id']]);
+        $f['home'] = $stmt->fetchColumn() ?: null;
+        $f['home_source'] = $f['home'] ? 'profile' : null;
+    }
+    if ($f['home'] === null && $f['lat'] !== null) {
+        $f['home'] = destination_country_at($f['lat'], $f['lng']);
+        $f['home_source'] = $f['home'] ? 'location' : null;
+    }
+    if ($f['home'] === null && preg_match('/^[A-Z]{2}$/', $chosen)) {
+        $f['home'] = $chosen;
+        $f['home_source'] = 'chosen';
     }
     return $f;
+}
+
+/** Cities of destination countries: id => [name, iso2]. */
+function destination_cities(): array
+{
+    static $rows = null;
+    if ($rows === null) {
+        $rows = [];
+        $stmt = db()->query(
+            'SELECT ci.id, ci.name_en, co.iso2 FROM rj_cities ci JOIN rj_countries co ON co.id = ci.country_id
+             WHERE co.is_destination = 1 ORDER BY co.name_en, ci.name_en'
+        );
+        foreach ($stmt as $r) {
+            $rows[(int) $r['id']] = ['name' => $r['name_en'], 'iso2' => $r['iso2']];
+        }
+    }
+    return $rows;
+}
+
+/**
+ * Is the place inside the chosen countries and cities?
+ * Ticking cities narrows only their own country: "Japan + Tokyo, Italy" means Tokyo or anywhere in Italy.
+ */
+function in_scope(array $p, array $f): bool
+{
+    if ($f['not_home'] && $f['home'] !== null && $p['iso2'] === $f['home']) {
+        return false;
+    }
+    if (!$f['countries'] && !$f['cities']) {
+        return true;
+    }
+    if (in_array((int) $p['city_id'], $f['cities'], true)) {
+        return true;
+    }
+    if (!in_array($p['iso2'], $f['countries'], true)) {
+        return false;
+    }
+    foreach ($f['cities'] as $id) {
+        if ((destination_cities()[$id]['iso2'] ?? null) === $p['iso2']) {
+            return false; // a city of this country was ticked, and this isn't it
+        }
+    }
+    return true;
+}
+
+/** Plain-language summary of where the search looks, for result headings. */
+function scope_label(array $f): string
+{
+    $names = destination_list();
+    $parts = array_map(fn ($iso) => $names[$iso] ?? $iso, $f['countries']);
+    foreach ($f['cities'] as $id) {
+        $parts[] = destination_cities()[$id]['name'] ?? '';
+    }
+    $label = $parts ? implode(', ', array_filter($parts)) : 'Anywhere';
+    if ($f['not_home'] && $f['home']) {
+        $label .= ' except ' . ($names[$f['home']] ?? $f['home']);
+    }
+    if ($f['radius'] && $f['lat'] !== null) {
+        $label .= ', ' . strtolower(RJ_RADII[$f['radius']]) . ' of you';
+    }
+    return $label;
 }
 
 /** Which criteria the user actually set a value for. */
@@ -122,21 +217,13 @@ function visa_is_easy(?string $type): bool
 }
 
 /**
- * Published places matching the location/type filters, with everything
+ * Published places matching the where/what/near-me filters, with everything
  * the scoring needs. Small dataset, so the rest is done in PHP.
  */
 function candidate_places(array $f): array
 {
     $where = ["p.status = 'published'", 'co.is_destination = 1'];
     $params = [];
-    if ($f['country'] !== '') {
-        $where[] = 'co.iso2 = ?';
-        $params[] = $f['country'];
-    }
-    if ($f['city_id'] !== null) {
-        $where[] = 'ci.id = ?';
-        $params[] = $f['city_id'];
-    }
     if ($f['group'] !== '') {
         $cats = RJ_GROUPS[$f['group']]['cats'];
         $where[] = 'cat.slug IN (' . implode(',', array_fill(0, count($cats), '?')) . ')';
@@ -166,6 +253,13 @@ function candidate_places(array $f): array
     $visa = visa_map();
     $rows = [];
     foreach ($stmt->fetchAll() as $r) {
+        if (!in_scope($r, $f)) {
+            continue;
+        }
+        $r['distance'] = $f['lat'] !== null ? distance_km($f['lat'], $f['lng'], (float) $r['lat'], (float) $r['lng']) : null;
+        if ($f['radius'] !== null && $r['distance'] !== null && $r['distance'] > $f['radius']) {
+            continue;
+        }
         $r['tags'] = $r['tag_slugs'] ? explode(',', $r['tag_slugs']) : [];
         $r['visa_type'] = $visa[(int) $r['country_id']] ?? null;
         $rows[] = $r;
@@ -320,8 +414,10 @@ function blocking_filter(array $f): ?array
     }
     // Location and type filters can be the blocker too
     $other = [
-        'Country and city' => $f['country'] !== '' || $f['city_id'] !== null ? ['country' => '', 'city_id' => null] : null,
-        'Looking for'      => $f['group'] !== '' ? ['group' => ''] : null,
+        'Countries and cities' => $f['countries'] || $f['cities'] ? ['countries' => [], 'cities' => []] : null,
+        'Not my home country'  => $f['not_home'] && $f['home'] ? ['not_home' => false] : null,
+        'Distance from you'    => $f['radius'] !== null && $f['lat'] !== null ? ['radius' => null] : null,
+        'Looking for'          => $f['group'] !== '' ? ['group' => ''] : null,
     ];
     foreach (array_filter($other) as $label => $reset) {
         $n = count(filter_strict(array_merge($f, $reset)));
@@ -340,18 +436,21 @@ function blocking_filter(array $f): ?array
     return $best;
 }
 
-/** Destination countries for dropdowns. */
+/** Destination countries for dropdowns: iso2 => English name. */
 function destination_list(): array
 {
-    return db()->query('SELECT iso2, name_en FROM rj_countries WHERE is_destination = 1 ORDER BY name_en')->fetchAll(PDO::FETCH_KEY_PAIR);
+    static $list = null;
+    $list ??= db()->query('SELECT iso2, name_en FROM rj_countries WHERE is_destination = 1 ORDER BY name_en')->fetchAll(PDO::FETCH_KEY_PAIR);
+    return $list;
 }
 
-/** Query string that reproduces the current filters (for links). */
+/** Query string that reproduces the current filters (for links). Location is never put in a URL. */
 function filters_query(array $f, array $override = []): string
 {
     $f = array_merge($f, $override);
     $q = [
-        'country' => $f['country'], 'city_id' => $f['city_id'], 'group' => $f['group'],
+        'countries' => $f['countries'], 'cities' => $f['cities'], 'not_home' => $f['not_home'] ? 1 : null,
+        'radius' => $f['radius'], 'group' => $f['group'],
         'max_price' => $f['max_price'], 'max_risk' => $f['max_risk'], 'environment' => $f['environment'],
         'terrain' => $f['terrain'], 'themes' => $f['themes'], 'cost' => $f['cost'],
     ];

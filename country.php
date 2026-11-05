@@ -5,12 +5,7 @@ require __DIR__ . '/includes/bootstrap.php';
 
 $country = find_country(is_string($_GET['c'] ?? null) ? $_GET['c'] : '');
 if ($country === null) {
-    http_response_code(404);
-    $pageTitle = 'Destination not found';
-    require __DIR__ . '/includes/header.php';
-    echo '<h1 class="page-title">We don\'t cover that country yet</h1><p><a href="' . e(url()) . '">See all destinations</a></p>';
-    require __DIR__ . '/includes/footer.php';
-    exit;
+    not_found('destination');
 }
 
 $stmt = db()->prepare(
@@ -40,17 +35,36 @@ $costs = array_filter([
     'Local transport ticket' => $country['price_local_transport'],
 ], fn ($v) => $v !== null);
 
+$cover = cover_photo('country', (int) $country['id']);
 $pageTitle = $country['name_en'];
 $useMap = true;
 require __DIR__ . '/includes/header.php';
 ?>
 <p class="breadcrumb"><a href="<?= e(url()) ?>">Destinations</a></p>
 
-<header class="place-hero">
-    <div class="place-hero__flag"><?= flag_img($country['iso2'], 56) ?></div>
-    <h1 class="place-hero__title"><?= e($country['name_en']) ?></h1>
-    <?php if ($country['name_th']): ?><p class="place-hero__local" lang="th"><?= e($country['name_th']) ?></p><?php endif; ?>
-    <?php if ($country['summary']): ?><p class="place-hero__lead"><?= e($country['summary']) ?></p><?php endif; ?>
+<?php $hasCard = in_array($country['iso2'], collected_countries(), true); ?>
+<header class="place-hero place-hero--with-card<?= $cover ? ' place-hero--cover' : '' ?>">
+    <?php if ($cover): ?>
+        <div class="place-hero__cover"><?= photo_img($cover, 'large', '', '', false) ?></div>
+        <p class="place-hero__credit"><?= photo_credit($cover) ?></p>
+    <?php endif; ?>
+    <div class="place-hero__text">
+        <div class="place-hero__flag"><?= flag_img($country['iso2'], 56) ?></div>
+        <h1 class="place-hero__title"><?= e($country['name_en']) ?></h1>
+        <?php if ($local = endonym_html($country['iso2'], 'place-hero__local')): ?><p><?= $local ?></p><?php endif; ?>
+        <?php if ($country['summary']): ?><p class="place-hero__lead"><?= e($country['summary']) ?></p><?php endif; ?>
+    </div>
+    <div class="place-hero__card">
+        <?= tarot_card($country['iso2'], ['size' => 'sm', 'up' => $hasCard, 'tilt' => $hasCard]) ?>
+        <p class="place-hero__card-note">
+            <?php if ($hasCard): ?>
+                Card <?= e(card_numeral($country['iso2'])) ?> is in <a href="<?= e(url('deck.php')) ?>">your deck</a>.
+            <?php else: ?>
+                Card <?= e(card_numeral($country['iso2'])) ?> is still face down.
+                <a href="<?= e(url('random.php')) ?>">Roll the dice</a> to unlock it.
+            <?php endif; ?>
+        </p>
+    </div>
 </header>
 
 <dl class="facts facts--grid">
@@ -70,11 +84,13 @@ require __DIR__ . '/includes/header.php';
             <?= map_block('map-country', $mapPoints, 'Map of cities in ' . $country['name_en'], 6) ?>
             <ul class="card-list">
                 <?php foreach ($cities as $c): ?>
-                    <li class="card">
-                        <h3 class="card__title"><a href="<?= e(city_url((int) $c['id'])) ?>"><?= e($c['name_en']) ?></a>
-                            <span class="card__local" lang="th"><?= e($c['name_th'] ?? '') ?></span></h3>
+                    <?php $ph = cover_photo('city', (int) $c['id']); ?>
+                    <li class="card<?= $ph ? ' card--photo' : '' ?>">
+                        <?php if ($ph): ?><a class="card__photo" href="<?= e(city_url((int) $c['id'])) ?>" tabindex="-1" aria-hidden="true"><?= photo_img($ph, 'thumb', '') ?></a><div class="card__body"><?php endif; ?>
+                        <h3 class="card__title"><a href="<?= e(city_url((int) $c['id'])) ?>"><?= e($c['name_en']) ?></a></h3>
                         <p class="card__text"><?= e($c['summary'] ?? '') ?></p>
                         <p class="card__meta"><?= (int) $c['places'] ?> places · <?= e(admin_options('environment')[$c['environment']] ?? '') ?></p>
+                        <?php if ($ph): ?></div><?php endif; ?>
                     </li>
                 <?php endforeach; ?>
             </ul>

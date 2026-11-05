@@ -46,6 +46,10 @@ require __DIR__ . '/form.php';
 require __DIR__ . '/admin.php';
 require __DIR__ . '/services.php';
 require __DIR__ . '/catalog.php';
+require __DIR__ . '/geo.php';
+require __DIR__ . '/tarot.php';
+require __DIR__ . '/not_found.php';
+require __DIR__ . '/trips.php';
 require __DIR__ . '/discover.php';
 require __DIR__ . '/reviews.php';
 

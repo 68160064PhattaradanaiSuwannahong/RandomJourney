@@ -10,3 +10,6 @@ uploads/*
 Thumbs.db
 .vscode/
 *.log
+
+# Python cache
+__pycache__/

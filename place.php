@@ -6,12 +6,7 @@ require __DIR__ . '/includes/bootstrap.php';
 $id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
 $place = $id ? find_place($id) : null;
 if ($place === null) {
-    http_response_code(404);
-    $pageTitle = 'Place not found';
-    require __DIR__ . '/includes/header.php';
-    echo '<h1 class="page-title">We couldn\'t find that place</h1><p><a href="' . e(url()) . '">See all destinations</a></p>';
-    require __DIR__ . '/includes/footer.php';
-    exit;
+    not_found('place');
 }
 
 $currency = (string) $place['currency_code'];
@@ -65,6 +60,8 @@ if (($_SESSION['review_form']['place_id'] ?? null) === (int) $place['id']) {
 unset($_SESSION['review_form']);
 $viewer = current_user();
 $saved = is_favorite((int) $place['id']);
+$photos = place_photos((int) $place['id']);
+$myTrips = $viewer ? user_trips((int) $viewer['id']) : [];
 
 $directions = 'https://www.google.com/maps/dir/?api=1&destination=' . rawurlencode($place['lat'] . ',' . $place['lng']);
 
@@ -81,7 +78,6 @@ require __DIR__ . '/includes/header.php';
 <header class="place-hero">
     <p class="place-hero__category"><?= e($place['category_name']) ?></p>
     <h1 class="place-hero__title place-hero__title--place"><?= e($place['name_en']) ?></h1>
-    <?php if ($place['name_th']): ?><p class="place-hero__local" lang="th"><?= e($place['name_th']) ?></p><?php endif; ?>
     <?php if ($place['summary']): ?><p class="place-hero__lead"><?= e($place['summary']) ?></p><?php endif; ?>
     <div class="place-hero__actions">
         <?php if ((int) $place['review_count'] > 0): ?>
@@ -95,6 +91,21 @@ require __DIR__ . '/includes/header.php';
                 <button type="submit" class="button button--small <?= $saved ? '' : 'button--quiet' ?>" aria-pressed="<?= $saved ? 'true' : 'false' ?>">
                     <?= $saved ? '♥ Saved' : '♡ Save' ?></button>
             </form>
+            <?php if ($myTrips): ?>
+                <form method="post" action="<?= e(url('trip.php')) ?>" class="inline-form add-to-trip">
+                    <?= csrf_field() ?>
+                    <input type="hidden" name="action" value="add">
+                    <input type="hidden" name="back" value="place">
+                    <input type="hidden" name="place_id" value="<?= (int) $place['id'] ?>">
+                    <label class="visually-hidden" for="add-trip">Trip</label>
+                    <select id="add-trip" name="trip_id">
+                        <?php foreach ($myTrips as $t): ?><option value="<?= (int) $t['id'] ?>"><?= e($t['title']) ?></option><?php endforeach; ?>
+                    </select>
+                    <button type="submit" class="button button--small button--quiet">+ Add to trip</button>
+                </form>
+            <?php else: ?>
+                <a class="button button--small button--quiet" href="<?= e(url('trips.php')) ?>">Plan a trip</a>
+            <?php endif; ?>
         <?php endif; ?>
     </div>
     <?php if ($tags): ?>
@@ -103,6 +114,37 @@ require __DIR__ . '/includes/header.php';
         </ul>
     <?php endif; ?>
 </header>
+
+<?php if ($photos): $n = count($photos); ?>
+<section class="album" aria-label="Photo album of <?= e($place['name_en']) ?>" data-album>
+    <div class="album__pages" data-album-pages>
+        <?php foreach ($photos as $i => $ph): ?>
+            <figure class="album__photo" data-album-photo>
+                <a class="album__mount" href="<?= e($ph['url']) ?>" data-album-open>
+                    <?= photo_img($ph, 'large', ($ph['caption'] ?: $place['name_en']) . ', photo ' . ($i + 1) . ' of ' . $n, 'album__image', $i > 1) ?>
+                </a>
+                <figcaption>
+                    <span class="album__caption"><?= e($ph['caption'] ?: $place['name_en']) ?> <span class="album__folio">· <?= $i + 1 ?> / <?= $n ?></span></span>
+                    <span class="album__credit"><?= photo_credit($ph) ?></span>
+                </figcaption>
+            </figure>
+        <?php endforeach; ?>
+    </div>
+    <div class="album__book" data-album-book hidden>
+        <div class="album__page album__page--left" data-album-left></div>
+        <div class="album__page album__page--right" data-album-right></div>
+    </div>
+    <div class="album__nav" data-album-nav hidden>
+        <button type="button" class="album__turn" data-album-prev aria-label="Previous page">‹</button>
+        <span class="album__status" data-album-status aria-live="polite"></span>
+        <button type="button" class="album__turn" data-album-next aria-label="Next page">›</button>
+    </div>
+    <dialog class="lightbox" data-lightbox aria-label="Photo viewer">
+        <form method="dialog"><button class="lightbox__close" aria-label="Close">×</button></form>
+        <img class="lightbox__image" alt="" data-lightbox-image referrerpolicy="no-referrer">
+    </dialog>
+</section>
+<?php endif; ?>
 
 <div class="layout-split">
     <div class="layout-split__main">
@@ -288,8 +330,19 @@ require __DIR__ . '/includes/header.php';
                 <?php if ((int) $place['permit_required'] || $place['permit_info']): ?>
                     <div><dt>Permits and booking</dt><dd><?= (int) $place['permit_required'] ? '<strong>Required.</strong> ' : '' ?><?= e($place['permit_info'] ?? '') ?></dd></div>
                 <?php endif; ?>
-                <?php if ($place['website_url']): ?><div><dt>Website</dt><dd><a href="<?= e($place['website_url']) ?>" rel="noopener" target="_blank">Official site</a></dd></div><?php endif; ?>
+                <?php if (!empty($place['best_time'])): ?><div><dt>Best time to go</dt><dd><?= e($place['best_time']) ?></dd></div><?php endif; ?>
+                <?php if ($place['website_url'] || !empty($place['wiki_url'])): ?>
+                    <div><dt>Read more</dt><dd>
+                        <?php if ($place['website_url']): ?><a href="<?= e($place['website_url']) ?>" rel="noopener" target="_blank">Official site</a><?php endif; ?>
+                        <?php if ($place['website_url'] && !empty($place['wiki_url'])): ?> · <?php endif; ?>
+                        <?php if (!empty($place['wiki_url'])): ?><a href="<?= e($place['wiki_url']) ?>" rel="noopener" target="_blank">Wikipedia</a><?php endif; ?>
+                    </dd></div>
+                <?php endif; ?>
             </dl>
+            <?php if (!empty($place['tips'])): ?>
+                <h3 class="panel__subtitle">Insider tips</h3>
+                <?= paragraphs($place['tips']) ?>
+            <?php endif; ?>
             <p class="small muted">Prices and hours change. Check before you go.</p>
         </section>
 

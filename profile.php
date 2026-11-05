@@ -125,6 +125,8 @@ require __DIR__ . '/includes/header.php';
                 <div><dt>Passport</dt><dd><?= flag_img($nationality['iso2'], 22) ?> <?= e($nationality['name_en']) ?></dd></div>
             <?php endif; ?>
             <div><dt>Member since</dt><dd><?= e(date('j M Y', strtotime($user['created_at']))) ?></dd></div>
+            <div><dt>Deck</dt><dd><a href="<?= e(url('deck.php')) ?>"><?= count(array_intersect(deck_order(), collected_countries())) ?> of <?= count(deck_order()) ?> cards</a></dd></div>
+            <div><dt>Trips</dt><dd><a href="<?= e(url('trips.php')) ?>"><?= count(user_trips((int) $user['id'])) ?> planned</a></dd></div>
             <?php if ($user['role'] === 'admin'): ?>
                 <div><dt>Role</dt><dd>Admin</dd></div>
             <?php endif; ?>

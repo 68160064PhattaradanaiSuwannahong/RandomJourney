@@ -157,7 +157,7 @@ function country_options(?int $selectedId): string
 {
     $html = '';
     foreach (countries_for_select() as $c) {
-        $label = $c['name_en'] . ($c['name_th'] ? ' (' . $c['name_th'] . ')' : '');
+        $label = $c['name_en'];
         $html .= sprintf(
             '<option value="%d" data-currency="%s"%s>%s</option>',
             $c['id'],

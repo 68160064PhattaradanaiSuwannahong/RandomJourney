@@ -14,12 +14,12 @@ function send_security_headers(): void
     header('Permissions-Policy: camera=(), microphone=(), geolocation=(self)');
 
     // Content Security Policy: only load scripts/styles from these sources.
-    // When adding Leaflet later, add its CDN host to script-src and style-src.
+    // Everything (fonts, Leaflet, three.js) is self-hosted; images may come from flagcdn and OpenStreetMap.
     header(
         "Content-Security-Policy: default-src 'self'; "
         . "script-src 'self'; "
-        . "style-src 'self' https://fonts.googleapis.com; "
-        . "font-src 'self' https://fonts.gstatic.com; "
+        . "style-src 'self'; "
+        . "font-src 'self'; "
         . "img-src 'self' data: https:; "
         . "connect-src 'self'; "
         . "form-action 'self'; "
@@ -83,17 +83,37 @@ function csrf_field(): string
     return '<input type="hidden" name="csrf_token" value="' . e(csrf_token()) . '">';
 }
 
-/** Stop the request if the POSTed token is missing or wrong. */
-function verify_csrf(): void
+/** True if the POSTed token matches this session's token. */
+function csrf_ok(): bool
 {
     $sent = $_POST['csrf_token'] ?? '';
-    if (!is_string($sent) || empty($_SESSION['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $sent)) {
-        http_response_code(400);
-        header('Content-Type: text/html; charset=utf-8');
-        echo '<!doctype html><meta charset="utf-8"><title>Form expired</title>'
-           . '<body style="font-family:sans-serif;max-width:40rem;margin:4rem auto;padding:0 1rem">'
-           . '<h1>This form has expired</h1>'
-           . '<p>Go back, reload the page and submit the form again.</p></body>';
-        exit;
+    return is_string($sent) && !empty($_SESSION['csrf_token']) && hash_equals($_SESSION['csrf_token'], $sent);
+}
+
+/**
+ * Stop the request if the POSTed token is missing or wrong.
+ * This usually means the page was left open until the session ended,
+ * so explain that and offer a way back instead of a bare error.
+ */
+function verify_csrf(): void
+{
+    if (csrf_ok()) {
+        return;
     }
+    http_response_code(400);
+    // Back to the page the form was on (same site only), without its #fragment
+    $ref = parse_url((string) ($_SERVER['HTTP_REFERER'] ?? ''));
+    $refPath = ($ref['path'] ?? '') . (isset($ref['query']) ? '?' . $ref['query'] : '');
+    $back = safe_next($refPath, 'index.php');
+    $pageTitle = 'Page expired';
+    require __DIR__ . '/header.php';
+    echo '<section class="lost"><p class="lost__code" aria-hidden="true">⌛</p>'
+       . '<h1 class="page-title">This page was open for too long</h1>'
+       . '<p class="lost__lead">For your security, forms stop working after a while without activity. '
+       . 'Nothing was changed. Reload the page and try again.</p>'
+       . '<p class="lost__actions">'
+       . '<a class="button" href="' . e($back) . '">Go back and reload</a>'
+       . '<a class="button button--quiet" href="' . e(url()) . '">Home</a></p></section>';
+    require __DIR__ . '/footer.php';
+    exit;
 }
