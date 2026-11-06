@@ -40,7 +40,7 @@ $pageTitle = $country['name_en'];
 $useMap = true;
 require __DIR__ . '/includes/header.php';
 ?>
-<p class="breadcrumb"><a href="<?= e(url()) ?>">Destinations</a></p>
+<?= breadcrumb([['Destinations', url()], [$country['name_en'], null]]) ?>
 
 <?php $hasCard = in_array($country['iso2'], collected_countries(), true); ?>
 <header class="place-hero place-hero--with-card<?= $cover ? ' place-hero--cover' : '' ?>">

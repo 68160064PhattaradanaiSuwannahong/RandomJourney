@@ -69,11 +69,12 @@ $pageTitle = $place['name_en'] . ', ' . $place['city_name'];
 $useMap = true;
 require __DIR__ . '/includes/header.php';
 ?>
-<p class="breadcrumb">
-    <a href="<?= e(url()) ?>">Destinations</a> /
-    <a href="<?= e(country_url($place['iso2'])) ?>"><?= e($place['country_name']) ?></a> /
-    <a href="<?= e(city_url((int) $place['city_id'])) ?>"><?= e($place['city_name']) ?></a>
-</p>
+<?= breadcrumb([
+    ['Destinations', url()],
+    [$place['country_name'], country_url($place['iso2'])],
+    [$place['city_name'], city_url((int) $place['city_id'])],
+    [$place['name_en'], null],
+]) ?>
 
 <header class="place-hero">
     <p class="place-hero__category"><?= e($place['category_name']) ?></p>

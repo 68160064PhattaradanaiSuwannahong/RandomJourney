@@ -32,12 +32,23 @@ if (is_post()) {
     }
 
     if (!$errors) {
-        $savedId = admin_save($entity, $result['values'], $result['tags'], $id);
-        flash('success', ucfirst($entity['singular']) . ($id ? ' saved.' : ' added.'));
-        $next = post_str('after') === 'new'
-            ? 'admin/edit.php?e=' . $key
-            : 'admin/edit.php?e=' . $key . '&id=' . $savedId;
-        redirect($next);
+        try {
+            $savedId = admin_save($entity, $result['values'], $result['tags'], $id);
+        } catch (PDOException $ex) {
+            if (($ex->errorInfo[1] ?? 0) !== 1062) {
+                throw $ex;
+            }
+            // A duplicate the checks above didn't foresee: say so instead of a server error
+            $savedId = null;
+            $errors['_form'] = 'This ' . $entity['singular'] . ' already exists. Edit the existing one instead.';
+        }
+        if ($savedId !== null) {
+            flash('success', ucfirst($entity['singular']) . ($id ? ' saved.' : ' added.'));
+            $next = post_str('after') === 'new'
+                ? 'admin/edit.php?e=' . $key
+                : 'admin/edit.php?e=' . $key . '&id=' . $savedId;
+            redirect($next);
+        }
     }
 } elseif ($row !== null) {
     $form = admin_row_to_form($entity, $row);
@@ -64,7 +75,7 @@ $bodyClass = 'page-admin';
 require dirname(__DIR__) . '/includes/header.php';
 echo admin_nav($key);
 ?>
-<p class="breadcrumb"><a href="<?= e(url('admin/list.php?e=' . $key)) ?>"><?= e($entity['title']) ?></a></p>
+<?= breadcrumb([[$entity['title'], url('admin/list.php?e=' . $key)], [$title, null]]) ?>
 <h1 class="page-title"><?= e($title) ?></h1>
 
 <?php if ($row && $entity['children']): ?>

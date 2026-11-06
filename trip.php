@@ -130,7 +130,7 @@ $pageTitle = $trip['title'];
 $useMap = (bool) $items;
 require __DIR__ . '/includes/header.php';
 ?>
-<p class="breadcrumb"><a href="<?= e(url('trips.php')) ?>">Your trips</a></p>
+<?= breadcrumb([['Your trips', url('trips.php')], [$trip['title'], null]]) ?>
 <header class="tool-head trip-head">
     <h1 class="page-title"><?= e($trip['title']) ?></h1>
     <p class="tool-head__lead"><?= (int) $trip['days'] ?> <?= (int) $trip['days'] === 1 ? 'day' : 'days' ?><?php

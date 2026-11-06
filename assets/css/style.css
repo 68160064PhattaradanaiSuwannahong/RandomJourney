@@ -20,7 +20,9 @@
     --gilt:             #c9a24a;
     --gilt-bright:      #f0d48a;
     --gilt-deep:        #8a6420;
-    --verdigris:        #2f6b66;
+    --link:             #7b2830;  /* links: oxblood ink with a gilt rule beneath */
+    --link-hover:       #a3313b;
+    --link-line:        rgba(138, 100, 32, 0.5);
     --midnight:         #1c1f33;
     --midnight-soft:    #2c3150;
 
@@ -88,8 +90,12 @@ h1, h2, h3 { line-height: 1.2; margin: 0 0 0.5em; font-weight: 600; }
 h1, h2 { font-family: var(--font-display); letter-spacing: 0.01em; }
 p { margin: 0 0 1em; max-width: var(--measure); }
 
-a { color: var(--verdigris); text-underline-offset: 0.2em; text-decoration-thickness: 1px; }
-a:hover { color: var(--oxblood); }
+a {
+    color: var(--link); text-decoration-line: underline; text-decoration-color: var(--link-line);
+    text-decoration-thickness: 1px; text-underline-offset: 0.24em;
+    transition: color 0.2s, text-decoration-color 0.2s;
+}
+a:hover { color: var(--link-hover); text-decoration-color: var(--gilt); text-decoration-thickness: 2px; }
 
 :focus-visible { outline: 3px solid var(--gilt-deep); outline-offset: 2px; }
 
@@ -159,8 +165,8 @@ a:hover { color: var(--oxblood); }
 .loc-pin.is-on { color: var(--leather); background: var(--gilt); border-color: var(--gilt-bright); box-shadow: 0 0 12px rgba(240, 212, 138, 0.55); }
 
 .inline-form { display: inline; margin: 0; }
-.link-button { font: inherit; background: none; border: 0; padding: 0; cursor: pointer; color: var(--verdigris); }
-.link-button:hover { color: var(--oxblood); }
+.link-button { font: inherit; background: none; border: 0; padding: 0; cursor: pointer; color: var(--link); }
+.link-button:hover { color: var(--link-hover); }
 
 .site-footer {
     color: #cdbb95; font-size: var(--step--1); padding-block: 1.75rem;
@@ -252,7 +258,7 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--g
 .password-input input { padding-right: 4.5rem; }
 .password-toggle {
     position: absolute; right: 0.35rem; top: 50%; transform: translateY(-50%);
-    font: inherit; font-size: var(--step--1); font-weight: 600; color: var(--verdigris);
+    font: inherit; font-size: var(--step--1); font-weight: 600; color: var(--link);
     background: none; border: 0; padding: 0.35rem 0.6rem; border-radius: var(--radius-control); cursor: pointer;
 }
 .password-toggle:hover { background: var(--info-bg); }
@@ -351,6 +357,16 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 .hero__lead { font-family: var(--font-script); font-style: italic; font-size: 1.3rem; color: var(--ink-soft); max-width: 44ch; }
 .hero__actions { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem 1.5rem; margin-top: 1.75rem; }
+.hero__actions .link {
+    display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.3rem 0;
+    font-family: var(--font-display); font-weight: 700; font-size: 0.95rem; letter-spacing: 0.06em;
+    text-decoration: none; color: var(--link);
+    background: linear-gradient(90deg, var(--gilt), rgba(201, 162, 74, 0)) left bottom / 100% 1px no-repeat;
+    transition: color 0.2s, background-size 0.3s;
+}
+.hero__actions .link::after { content: "\2192"; font-family: var(--font-body); transition: transform 0.25s; }
+.hero__actions .link:hover { color: var(--link-hover); background-image: linear-gradient(90deg, var(--gilt), var(--gilt)); }
+.hero__actions .link:hover::after { transform: translateX(4px); }
 .hero__emblem { justify-self: center; width: min(17rem, 70vw); aspect-ratio: 1; position: relative; }
 .hero__emblem svg { width: 100%; height: 100%; overflow: visible; }
 .hero__emblem .ring { fill: none; stroke: var(--gilt-deep); stroke-width: 1; }
@@ -451,7 +467,26 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .level--4 { background: #f0d0b7; color: #84391a; }
 .level--5 { background: #e9c3bd; color: #7d1f1f; }
 
-.breadcrumb { margin: 0 0 0.25rem; font-size: var(--step--1); }
+.breadcrumb { margin: 0 0 0.6rem; }
+.breadcrumb ol {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 0.15rem 0; margin: 0; padding: 0; list-style: none;
+    font-family: var(--font-display); font-size: 0.8rem; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase;
+}
+.breadcrumb li { display: inline-flex; align-items: center; min-width: 0; }
+.breadcrumb li + li::before {
+    /* a small gilt diamond between steps */
+    content: ""; flex: none; width: 0.36rem; height: 0.36rem; margin: 0 0.7rem; transform: rotate(45deg);
+    background: var(--gilt); box-shadow: 0 0 0 1px rgba(138, 100, 32, 0.35);
+}
+.breadcrumb a { color: var(--ink-soft); text-decoration: none; padding: 0.15rem 0; background: linear-gradient(var(--gilt), var(--gilt)) left bottom / 0 1px no-repeat; transition: color 0.2s, background-size 0.25s; }
+.breadcrumb a:hover { color: var(--link-hover); background-size: 100% 1px; }
+.breadcrumb [aria-current="page"] { color: var(--link); font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 22rem; }
+@media (max-width: 40rem) {
+    /* on a phone the page title already names the current page */
+    .breadcrumb ol { font-size: 0.74rem; letter-spacing: 0.05em; }
+    .breadcrumb li:has([aria-current="page"]):not(:first-child) { display: none; }
+    .breadcrumb li + li::before { margin: 0 0.5rem; }
+}
 .related { display: flex; flex-wrap: wrap; gap: 0.4rem 1rem; margin-bottom: 1.5rem; }
 .related a { font-weight: 600; }
 .related__add { font-weight: 400 !important; margin-left: -0.6rem; }
@@ -881,7 +916,7 @@ details summary { cursor: pointer; font-weight: 600; margin-bottom: 0.5rem; }
 .review__title { font-family: var(--font-body); font-weight: 600; }
 .review__meta { margin: 0.25rem 0 0; }
 .review__actions { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 0.5rem 1.25rem; margin-top: 0.5rem; font-size: var(--step--1); }
-.review__actions .link-button, .review-form .link-button, .nearby-list .link-button { color: var(--verdigris); font-weight: 500; }
+.review__actions .link-button, .review-form .link-button, .nearby-list .link-button { color: var(--link); font-weight: 500; }
 .review__actions .link-button[aria-pressed="true"] { color: var(--success); }
 .link-button.link-button--danger { color: var(--error); }
 .report summary { list-style: none; display: inline; }
@@ -1024,7 +1059,9 @@ details summary { cursor: pointer; font-weight: 600; margin-bottom: 0.5rem; }
     --line:             #4a3f30;
     --line-strong:      #6e5c40;
     --oxblood:          #c26b72;
-    --verdigris:        #86c7bf;
+    --link:             #e2c47c;
+    --link-hover:       #fff0c4;
+    --link-line:        rgba(240, 212, 138, 0.4);
     --success:          #a9cf96;
     --success-bg:       #263522;
     --error:            #f0a49b;

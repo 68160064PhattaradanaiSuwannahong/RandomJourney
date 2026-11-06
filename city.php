@@ -40,10 +40,7 @@ $pageTitle = $city['name_en'] . ', ' . $city['country_name'];
 $useMap = true;
 require __DIR__ . '/includes/header.php';
 ?>
-<p class="breadcrumb">
-    <a href="<?= e(url()) ?>">Destinations</a> /
-    <a href="<?= e(country_url($city['iso2'])) ?>"><?= e($city['country_name']) ?></a>
-</p>
+<?= breadcrumb([['Destinations', url()], [$city['country_name'], country_url($city['iso2'])], [$city['name_en'], null]]) ?>
 
 <header class="place-hero<?= $cover ? ' place-hero--cover' : '' ?>">
     <?php if ($cover): ?>

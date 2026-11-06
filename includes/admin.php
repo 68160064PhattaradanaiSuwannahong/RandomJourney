@@ -140,6 +140,7 @@ function admin_entities(): array
             'title'    => 'Cities',
             'singular' => 'city',
             'table'    => 'rj_cities',
+            'unique'   => [['country_id', 'name_en'], 'This country already has a city with that name.'],
             'list' => [
                 'from'    => 'rj_cities ci JOIN rj_countries co ON co.id = ci.country_id',
                 'select'  => 'ci.id, ci.name_en, ci.name_th, co.name_en AS country, ci.environment,
@@ -231,6 +232,7 @@ function admin_entities(): array
             'title'    => 'Photos',
             'singular' => 'photo',
             'table'    => 'rj_photos',
+            'unique'   => [['place_id', 'url'], 'This place already has that photo.'],
             'list' => [
                 'from'    => 'rj_photos ph JOIN rj_places p ON p.id = ph.place_id',
                 'select'  => 'ph.id, p.name_en AS place, ph.sort_order, ph.author, ph.license',

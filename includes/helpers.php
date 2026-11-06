@@ -168,3 +168,17 @@ function country_options(?int $selectedId): string
     }
     return $html;
 }
+
+/**
+ * Breadcrumb trail: [[label, url], ...]; the last item is the current page (pass null as its url).
+ */
+function breadcrumb(array $items): string
+{
+    $html = '<nav class="breadcrumb" aria-label="Breadcrumb"><ol>';
+    foreach ($items as [$label, $href]) {
+        $html .= $href === null
+            ? '<li><span aria-current="page">' . e($label) . '</span></li>'
+            : '<li><a href="' . e($href) . '">' . e($label) . '</a></li>';
+    }
+    return $html . '</ol></nav>';
+}
